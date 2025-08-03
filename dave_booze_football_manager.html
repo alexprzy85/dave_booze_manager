@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dave Booze: Hanham Abbotonians Football Manager</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons (e.g., football, whistle, trophy) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0A1128; /* Dark Navy Blue */
+            color: #FDD835; /* Yellow */
+        }
+        .container {
+            max-width: 960px;
+        }
+        .btn {
+            background-color: #FDD835; /* Yellow */
+            color: #0A1128; /* Dark Navy Blue */
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 2px solid #FDD835;
+        }
+        .btn:hover {
+            background-color: #0A1128; /* Dark Navy Blue */
+            color: #FDD835; /* Yellow */
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+            border: 2px solid #FDD835;
+        }
+        .btn:disabled {
+            background-color: #555;
+            color: #ccc;
+            cursor: not-allowed;
+            border: 2px solid #555;
+            box-shadow: none;
+        }
+        .card {
+            background-color: #1C274E; /* Slightly lighter navy */
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+        }
+        .message-box, .substitution-modal, .interaction-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #1C274E;
+            color: #FDD835;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            display: none; /* Hidden by default */
+            max-width: 90%;
+            text-align: center;
+        }
+        .message-box button, .substitution-modal button, .interaction-modal button {
+            margin-top: 1rem;
+            cursor: pointer;
+        }
+        input[type="text"], input[type="number"], select {
+            background-color: #0A1128;
+            border: 1px solid #FDD835;
+            color: #FDD835;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            width: 100%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(253, 216, 53, 0.2); /* Light yellow border */
+        }
+        th {
+            background-color: rgba(253, 216, 53, 0.1); /* Very light yellow tint */
+        }
+        .scrollable-list {
+            max-height: 300px; /* Adjust as needed */
+            overflow-y: auto;
+            border: 1px solid rgba(253, 216, 53, 0.2);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+        }
+        .commentary-log {
+            background-color: #0A1128;
+            border: 1px solid #FDD835;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+        .commentary-log p {
+            margin-bottom: 0.5rem;
+        }
+        /* Style for player list to minimize scrolling */
+        .player-role-selection .scrollable-list {
+            max-height: 450px; /* Adjusted to fit more players */
+        }
+        .player-role-selection .player-item span {
+            font-size: 0.85rem; /* Smaller font for player details */
+        }
+        .player-role-selection .player-item span.text-xs {
+            font-size: 0.75rem; /* Even smaller for stats */
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div id="game-container" class="container mx-auto p-6 bg-0A1128 rounded-lg shadow-xl text-center">
+        <!-- Game content will be loaded here by JavaScript -->
+        <h1 class="text-4xl font-extrabold mb-8 text-FDD835 uppercase tracking-wide">
+            Dave Booze: Hanham Abbotonians Football Manager
+        </h1>
+        <div id="game-screen" class="card">
+            <!-- Content will be injected here -->
+        </div>
+    </div>
+
+    <!-- Message Box for Alerts -->
+    <div id="message-box" class="message-box">
+        <p id="message-text"></p>
+        <button onclick="hideMessageBox()" class="btn">OK</button>
+    </div>
+
+    <!-- Substitution Modal -->
+    <div id="substitution-modal" class="substitution-modal">
+        <h3 class="text-2xl font-bold mb-4">Make a Substitution</h3>
+        <p class="mb-4">Select a player to come off and a player to come on.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label for="player-off-select" class="block text-sm font-bold mb-1">Player Off:</label>
+                <select id="player-off-select" class="w-full">
+                    <option value="">-- Select Player Off --</option>
+                </select>
+            </div>
+            <div>
+                <label for="player-on-select" class="block text-sm font-bold mb-1">Player On:</label>
+                <select id="player-on-select" class="w-full">
+                    <option value="">-- Select Player On --</option>
+                </select>
+            </div>
+        </div>
+        <div class="flex justify-center gap-4">
+            <button onclick="performSubstitution()" class="btn">Confirm Sub</button>
+            <button onclick="cancelSubstitution()" class="btn">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Interaction Modal -->
+    <div id="interaction-modal" class="interaction-modal">
+        <h3 class="text-2xl font-bold mb-4" id="interaction-modal-title"></h3>
+        <p class="mb-4" id="interaction-message"></p>
+        <div id="interaction-options" class="flex flex-col md:flex-row gap-4 justify-center">
+            <!-- Buttons will be injected here -->
+        </div>
+    </div>
+
+    <!-- Audio Elements -->
+    <audio id="goal-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-small-group-cheer-and-applause-2015.mp3" preload="auto"></audio>
+    <audio id="whistle-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-sport-whistle-3184.mp3" preload="auto"></audio>
+
+    <script type="module">
+        // Firebase imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Firebase Initialization
+        let app;
+        let db;
+        let auth;
+        let userId = 'anonymous'; // Default to anonymous
+        let isAuthReady = false;
+
+        // Game State Variables
+        let currentWeek = 0;
+        let totalWeeks; // Will be determined by fixture generation
+        let natchCider = 0;
+        let userName = '';
+        let seasonComplete = false;
+        let selectedSquad = []; // Players selected for match-day squad (starters + subs, up to 15)
+        let selectedLineup = []; // Players currently on the field (exactly 11)
+        let designatedGoalkeeperId = null;
+        let matchInterval; // For live match commentary
+        let matchMinutes = 0;
+        let isMatchPaused = false;
+        let hanhamGoals = []; // To store goal scorers
+        let teamStrengthModifier = 0; // Modifier for red cards
+
+        const teams = [
+            { name: "Hanham Abbotonians", strength: 70 },
+            { name: "Longwell Green", strength: 75 },
+            { name: "Keynsham Town", strength: 68 },
+            { name: "Oldland Abbotonians", strength: 72 },
+            { name: "Mangotsfield Utd", strength: 78 },
+            { name: "Warmley Rangers", strength: 65 },
+            { name: "Pucklechurch Sports", strength: 63 },
+            { name: "Cadbury Heath", strength: 70 },
+            { name: "Emersons Green", strength: 73 },
+            { name: "Bradley Stoke", strength: 69 },
+            { name: "Yate Town", strength: 76 }
+        ];
+
+        // Updated Player Data with detailed personalities and initial stats
+        let players = [
+            { id: 'p1', name: "Ashton", personality: "mischievous", position: "Defender", fitness: 80, morale: 70, readiness: 0, trainingRating: 0, form: 75, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: -10, parentId: 'pr1', description: "Small left defender, often talks during team talks, regularly falls out with Caspar." },
+            { id: 'p2', name: "Connor", personality: "injuryProne", position: "Defender", fitness: 75, morale: 80, readiness: 0, trainingRating: 0, form: 78, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: 0, parentId: 'pr2', description: "Tall right sided defender, can play in attack. Best friend is Ewan." },
+            { id: 'p3', name: "Stan", personality: "injuryProne", position: "Midfielder", fitness: 70, morale: 75, readiness: 0, trainingRating: 0, form: 72, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: 0, parentId: 'pr3', description: "Central defender or midfield. Excellent first touch. Has bad hips and knees." },
+            { id: 'p4', name: "Leon", personality: "quiet", position: "Defender", fitness: 85, morale: 80, readiness: 0, trainingRating: 0, form: 82, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: 5, parentId: 'pr4', description: "Central defender or midfield. Battles well but very quiet. Best friend is Zain." },
+            { id: 'p5', name: "Kyle R", personality: "injuryProne", position: "Defender", fitness: 70, morale: 75, readiness: 0, trainingRating: 0, form: 70, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: -5, parentId: 'pr5', description: "Right defender. Great in a slide tackle and reads the game well but gets injured most of the time." },
+            { id: 'p6', name: "Caspar", personality: "moaner", position: "Midfielder", fitness: 78, morale: 65, readiness: 0, trainingRating: 0, form: 68, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: -15, parentId: 'pr6', description: "Left wing or left back. Uses his hands constantly, moans when things aren't going his way, falls out with the team and his dad. Regularly falls out with Ashton." },
+            { id: 'p7', name: "Ewan", personality: "cricketLover", position: "Midfielder", fitness: 80, morale: 75, readiness: 0, trainingRating: 0, form: 75, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: -30, parentId: 'pr7', description: "Left wing. Long blonde hair. Unreliable in the summer as he prefers to play cricket. Best friend is Connor." },
+            { id: 'p8', name: "Zain", personality: "unreliable", position: "Forward", fitness: 90, morale: 85, readiness: 0, trainingRating: 0, form: 88, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: -20, parentId: 'pr8', description: "Attack, right or left wing. Very fast and good finisher. When available, he is great. Unreliable due to parent's takeaway." },
+            { id: 'p9', name: "Billy", personality: "lowConfidence", position: "Forward", fitness: 80, morale: 60, readiness: 0, trainingRating: 0, form: 65, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: -5, parentId: null, description: "Right wing or attack. Short of confidence but good player. Often asks to come off with a bad knee or groin. Best friends with Ashton." },
+            { id: 'p10', name: "Isaac", personality: "quiet", position: "Forward", fitness: 85, morale: 70, readiness: 0, trainingRating: 0, form: 78, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: 0, parentId: null, description: "Wing or attack. Very fast and has become more physical. Doesn't interact verbally too much with the team." },
+            { id: 'p11', name: "Jakub", personality: "creative", position: "Midfielder", fitness: 88, morale: 90, readiness: 0, trainingRating: 0, form: 90, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: 10, parentId: 'pr9', description: "Central midfield, attack. Very intelligent, creative footballer. Top scorer last season. Good at slide tackles and heading." },
+            { id: 'p12', name: "Charlie", personality: "speedy", position: "Defender", fitness: 82, morale: 80, readiness: 0, trainingRating: 0, form: 80, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: 5, parentId: 'pr10', description: "Central defender. Loves long mazy runs. Great speed and recovery tackle." },
+            { id: 'p13', name: "Harry", personality: "fittest", position: "Midfielder", fitness: 95, morale: 88, readiness: 0, trainingRating: 0, form: 92, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: 15, parentId: 'pr11', description: "Very good footballer. Fittest player in the team, runs all day. Links up well with Jakub. Rumours he wants to join rivals Boco." },
+            { id: 'p14', name: "Archie", personality: "aggressive", position: "Defender", fitness: 75, morale: 70, readiness: 0, trainingRating: 0, form: 73, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: 0, parentId: 'pr12', description: "Central defender. Likes a tackle. Gets angry at himself. Good long kick." },
+            // Fictional players to ensure squad depth (total 15 players minimum initially)
+            { id: 'p15', name: "Sam P", personality: "consistent", position: "Midfielder", fitness: 85, morale: 85, readiness: 0, trainingRating: 0, form: 85, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: 5, parentId: null, description: "Reliable midfielder, always gives his best." },
+            { id: 'p16', name: "Tom W", personality: "enthusiastic", position: "Forward", fitness: 78, morale: 90, readiness: 0, trainingRating: 0, form: 84, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: 10, parentId: null, description: "Energetic forward, loves scoring goals." },
+            { id: 'p17', name: "Finley B", personality: "quiet", position: "Defender", fitness: 80, morale: 75, readiness: 0, trainingRating: 0, form: 77, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: 0, parentId: null, description: "Solid defender, calm and composed." },
+            { id: 'p18', name: "Max C", personality: "leader", position: "Midfielder", fitness: 88, morale: 88, readiness: 0, trainingRating: 0, form: 89, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: 10, parentId: null, description: "Natural leader, inspires the team." },
+            { id: 'p19', name: "Leo H", personality: "speedy", position: "Forward", fitness: 83, morale: 80, readiness: 0, trainingRating: 0, form: 81, isInjured: false, injuryDuration: 0, matchRating: 0, yellowCards: 0, redCards: 0, attendanceBias: 5, parentId: null, description: "Quick winger, loves to take on defenders." }
+        ];
+
+        // Updated Parent Data with detailed descriptions
+        const parents = [
+            { id: 'pr1', name: "Aimee", childName: "Ashton", reactionBias: -5, happiness: 70, personality: "safeguardingOfficer", description: "Club safeguarding officer. You often see her dealing with Ashton's mischief." },
+            { id: 'pr2', name: "Gail", childName: "Connor", reactionBias: 0, happiness: 80, personality: "barWorker", description: "Runs the club's bar with Emma. She's used to Connor asking to come off injured." },
+            { id: 'pr3', name: "Emma", childName: "Stan", reactionBias: 5, happiness: 85, personality: "barWorker", description: "Works on the bar with Gail. She's Stan's parent (Dave's own son)." },
+            { id: 'pr4', name: "Mrs. Leon", childName: "Leon", reactionBias: 0, happiness: 75, personality: "quiet", description: "Leon's parent. She's very supportive but doesn't interact much." },
+            { id: 'pr5', name: "Marcus", childName: "Kyle R", reactionBias: 10, happiness: 90, personality: "clubMan", description: "A true club man, runs the line sometimes, and plays for the adult team (who get thrashed every week). Always positive." },
+            { id: 'pr6', name: "Craig", childName: "Caspar", reactionBias: -10, happiness: 60, personality: "assistantManager", description: "Dave's assistant manager. Often distracted, loves 'duck, duck, goose' during training. His strained relationship with Caspar is noticeable." },
+            { id: 'pr7', name: "Neil", childName: "Ewan", reactionBias: -15, happiness: 65, personality: "unhelpful", description: "Never helps set up the pitch or run the line; just sits drinking coffee. Dave wonders why he even comes." },
+            { id: 'pr8', name: "Raul", childName: "Zain", reactionBias: -20, happiness: 55, personality: "businessOwner", description: "Owns local takeaway 'Curry Nights', which often affects Zain's attendance. You can tell he prioritizes the business." },
+            { id: 'pr9', name: "Alex", childName: "Jakub", reactionBias: 5, happiness: 85, personality: "beerLover", description: "Loves a beer, helps setup goal posts with Matt. Often shouts at Jakub from the side, causing arguments." },
+            { id: 'pr10', name: "Jade", childName: "Charlie", reactionBias: 0, happiness: 78, personality: "posh", description: "Posh, drives a 4x4. Always punctual but keeps to herself." },
+            { id: 'pr11', name: "Matt", childName: "Harry", reactionBias: 10, happiness: 92, personality: "clubMan", description: "Loves a beer with Alex, helps setup goal posts. Brings dog poo bags. Wears a backpack, looks like Jason Statham. Always very helpful." },
+            { id: 'pr12', name: "Dan", childName: "Archie", reactionBias: 0, happiness: 70, personality: "exManager", description: "Ex-manager of the team. He has strong opinions but usually keeps them to himself." }
+        ];
+
+        let leagueTable = teams.map(team => ({
+            ...team,
+            played: 0,
+            wins: 0,
+            draws: 0,
+            losses: 0,
+            goalsFor: 0,
+            goalsAgainst: 0,
+            goalDifference: 0,
+            points: 0
+        }));
+
+        let fixtures = []; // Stores all generated fixtures
+
+        // Audio elements
+        const goalSound = document.getElementById('goal-sound');
+        const whistleSound = document.getElementById('whistle-sound');
+
+        // Google Analytics (GA4) setup - will be dynamically inserted if needed
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-XXXXXXXXXX'); // Placeholder for a GA4 Measurement ID
+
+        // Function to show custom message box
+        function showMessageBox(message, onOk = null) {
+            const messageBox = document.getElementById('message-box');
+            const messageText = document.getElementById('message-text');
+            const okButton = messageBox.querySelector('button');
+
+            messageText.innerHTML = message;
+            messageBox.style.display = 'block';
+
+            okButton.onclick = () => {
+                hideMessageBox();
+                if (onOk) onOk();
+            };
+        }
+
+        function hideMessageBox() {
+            document.getElementById('message-box').style.display = 'none';
+        }
+
+        // Firebase Initialization and Auth Listener
+        const firebaseInit = async () => {
+            try {
+                if (Object.keys(firebaseConfig).length > 0) {
+                    app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            userId = user.uid;
+                            console.log("Firebase Auth Ready. User ID:", userId);
+                        } else {
+                            try {
+                                if (initialAuthToken) {
+                                    await signInWithCustomToken(auth, initialAuthToken);
+                                    userId = auth.currentUser.uid;
+                                    console.log("Signed in with custom token. User ID:", userId);
+                                } else {
+                                    await signInAnonymously(auth);
+                                    userId = auth.currentUser.uid;
+                                    console.log("Signed in anonymously. User ID:", userId);
+                                }
+                            } catch (error) {
+                                console.error("Firebase Auth Error:", error);
+                                showMessageBox("Failed to authenticate with Firebase. Leaderboard features may be limited.", () => {
+                                    userId = crypto.randomUUID();
+                                    isAuthReady = true;
+                                    displayWelcomeScreen();
+                                });
+                            }
+                        }
+                        isAuthReady = true;
+                        if (!userName) {
+                            displayWelcomeScreen();
+                        }
+                        setupLeaderboardListener();
+                    });
+                } else {
+                    console.warn("Firebase config not provided. Running without Firestore.");
+                    userId = crypto.randomUUID();
+                    isAuthReady = true;
+                    displayWelcomeScreen();
+                }
+            } catch (error) {
+                console.error("Failed to initialize Firebase:", error);
+                showMessageBox("Error initializing Firebase. Leaderboard features will be unavailable.", () => {
+                    userId = crypto.randomUUID();
+                    isAuthReady = true;
+                    displayWelcomeScreen();
+                });
+            }
+        };
+
+        // Leaderboard Functions (unchanged from previous version)
+        async function saveScoreToLeaderboard(score) {
+            if (!db || !userId || !userName) {
+                console.warn("Cannot save score: Firebase, userId, or userName not available.");
+                return;
+            }
+            try {
+                const leaderboardCollectionRef = collection(db, `artifacts/${appId}/public/data/leaderboard`);
+                await addDoc(leaderboardCollectionRef, {
+                    userName: userName,
+                    score: score,
+                    timestamp: new Date(),
+                    userId: userId
+                });
+                console.log("Score saved to leaderboard!");
+            } catch (e) {
+                console.error("Error adding document to leaderboard: ", e);
+                showMessageBox("Failed to save score to leaderboard. Check console for details.");
+            }
+        }
+
+        function setupLeaderboardListener() {
+            if (!db) {
+                console.warn("Firestore not available for leaderboard listener.");
+                return;
+            }
+            const leaderboardCollectionRef = collection(db, `artifacts/${appId}/public/data/leaderboard`);
+            const q = query(leaderboardCollectionRef, orderBy("score", "desc"), limit(10));
+
+            onSnapshot(q, (snapshot) => {
+                const scores = [];
+                snapshot.forEach((doc) => {
+                    scores.push(doc.data());
+                });
+                displayLeaderboard(scores);
+            }, (error) => {
+                console.error("Error listening to leaderboard: ", error);
+                showMessageBox("Failed to load leaderboard. Check console for details.");
+            });
+        }
+
+        function displayLeaderboard(scores) {
+            const leaderboardHtml = `
+                <h3 class="text-2xl font-bold mb-4">Top Dave Booze Managers!</h3>
+                <table class="w-full text-sm mb-4">
+                    <thead>
+                        <tr>
+                            <th class="px-2 py-1">Rank</th>
+                            <th class="px-2 py-1">Manager</th>
+                            <th class="px-2 py-1 text-right">Natch Cider</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${scores.map((s, index) => `
+                            <tr>
+                                <td class="px-2 py-1">${index + 1}</td>
+                                <td class="px-2 py-1">${s.userName}</td>
+                                <td class="px-2 py-1 text-right">${s.score} <i class="fas fa-beer text-yellow-400"></i></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            const leaderboardDiv = document.getElementById('leaderboard-display');
+            const leaderboardDivFinal = document.getElementById('leaderboard-display-final');
+            if (leaderboardDiv) {
+                leaderboardDiv.innerHTML = leaderboardHtml;
+            }
+            if (leaderboardDivFinal) {
+                leaderboardDivFinal.innerHTML = leaderboardHtml;
+            }
+        }
+
+        // Helper functions
+        function generateUniqueId() {
+            return 'id-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function calculateReadiness(player) {
+            // Readiness influenced by fitness, morale, and form
+            return Math.round((player.fitness * 0.5 + player.morale * 0.3 + player.form * 0.2) / 100 * 100);
+        }
+
+        function updatePlayerForm(player, newRating) {
+            // Simple moving average for form based on training or match rating
+            player.form = Math.round((player.form * 0.7 + newRating * 0.3)); // 70% old form, 30% new rating
+            player.form = Math.max(1, Math.min(100, player.form)); // Keep form between 1-100
+        }
+
+
+        // Fixture Generation (unchanged)
+        function generateFixtures() {
+            const numOriginalTeams = teams.length;
+            let actualTeams = [...teams];
+            const hasBye = numOriginalTeams % 2 !== 0;
+            if (hasBye) {
+                actualTeams.push({ name: "BYE", strength: 0 });
+            }
+            const totalPlayingTeams = actualTeams.length;
+            fixtures = [];
+            const numWeeksPerRound = totalPlayingTeams - 1;
+            let rotatedTeams = [...actualTeams];
+
+            for (let weekOffset = 0; weekOffset < numWeeksPerRound; weekOffset++) {
+                for (let i = 0; i < totalPlayingTeams / 2; i++) {
+                    const team1 = rotatedTeams[i];
+                    const team2 = rotatedTeams[totalPlayingTeams - 1 - i];
+                    if (team1.name !== "BYE" && team2.name !== "BYE") {
+                        fixtures.push({ week: weekOffset + 1, home: team1.name, away: team2.name, result: null, homeScore: 0, awayScore: 0 });
+                    }
+                }
+                if (totalPlayingTeams > 2) {
+                    const fixedTeam = rotatedTeams[0];
+                    const lastTeam = rotatedTeams.pop();
+                    rotatedTeams.splice(1, 0, lastTeam);
+                    rotatedTeams[0] = fixedTeam;
+                }
+            }
+
+            const firstRoundFixtures = [...fixtures];
+            firstRoundFixtures.forEach(f => {
+                if (f.home !== "BYE" && f.away !== "BYE") {
+                    fixtures.push({ week: f.week + numWeeksPerRound, home: f.away, away: f.home, result: null, homeScore: 0, awayScore: 0 });
+                }
+            });
+
+            totalWeeks = numWeeksPerRound * 2;
+
+            if (hasBye) {
+                fixtures = fixtures.filter(f => f.home !== "BYE" && f.away !== "BYE");
+            }
+            fixtures.sort((a, b) => a.week - b.week);
+        }
+
+        // Update player stats and handle training reactions
+        function updatePlayerStats(trainingType) {
+            let potentialInteractions = []; // Store players for potential interaction
+
+            players.forEach(player => {
+                if (player.isInjured) {
+                    player.injuryDuration--;
+                    if (player.injuryDuration <= 0) {
+                        player.isInjured = false;
+                        player.injuryDuration = 0;
+                        showMessageBox(`${player.name} has recovered from injury!`);
+                    }
+                    return;
+                }
+
+                let fitnessChange = 0;
+                let moraleChange = 0;
+                let trainingRating = 5; // Base training rating
+
+                switch (trainingType) {
+                    case 'intense':
+                        fitnessChange = Math.floor(Math.random() * 10) + 5;
+                        moraleChange = Math.floor(Math.random() * 5) - 2;
+                        trainingRating += (fitnessChange / 5); // Higher fitness gain means better training rating
+                        if (player.personality === 'injuryProne') {
+                            if (Math.random() < 0.15) {
+                                player.isInjured = true;
+                                player.injuryDuration = Math.floor(Math.random() * 3) + 1;
+                                showMessageBox(`${player.name}, with his injury-prone nature, picked up a knock during intense training! Out for ${player.injuryDuration} week(s).`);
+                                return;
+                            }
+                        } else if (player.personality === 'aggressive' && Math.random() < 0.1) {
+                            // Personality reveal through action
+                            potentialInteractions.push({ player: player, message: `${player.name} was very aggressive in training, pushing hard. Some players might find it a bit much.`, type: 'aggressive' });
+                        }
+                        break;
+                    case 'balanced':
+                        fitnessChange = Math.floor(Math.random() * 7) + 3;
+                        moraleChange = Math.floor(Math.random() * 7) + 3;
+                        trainingRating += (fitnessChange + moraleChange) / 10;
+                        if (player.personality === 'consistent') {
+                            potentialInteractions.push({ player: player, message: `${player.name} had a solid, consistent training session, exactly what you expect.`, type: 'positive' });
+                        }
+                        break;
+                    case 'fun':
+                        fitnessChange = Math.floor(Math.random() * 5) - 1;
+                        moraleChange = Math.floor(Math.random() * 10) + 5;
+                        trainingRating += (moraleChange / 5); // Higher morale gain means better training rating
+                        if (player.personality === 'mischievous') {
+                            moraleChange += 5;
+                            potentialInteractions.push({ player: player, message: `Ashton, true to his mischievous nature, was distracting others but loved the fun session!`, type: 'mischievous' });
+                        }
+                        if (player.personality === 'moaner') {
+                            moraleChange += 8;
+                            potentialInteractions.push({ player: player, message: `Even Caspar seemed to enjoy the fun session, his mood significantly improved!`, type: 'moaner' });
+                        }
+                        if (player.personality === 'lowConfidence') {
+                            moraleChange += 8;
+                            potentialInteractions.push({ player: player, message: `${player.name}'s confidence seemed to lift during the fun training!`, type: 'positive' });
+                        }
+                        break;
+                }
+
+                player.fitness = Math.max(0, Math.min(100, player.fitness + fitnessChange));
+                player.morale = Math.max(0, Math.min(100, player.morale + moraleChange));
+                player.trainingRating = Math.max(1, Math.min(10, Math.round(trainingRating + (Math.random() * 2 - 1)))); // +/- 1 for randomness
+                updatePlayerForm(player, player.trainingRating); // Update form based on training rating
+                player.readiness = calculateReadiness(player);
+            });
+
+            // After all players processed, trigger an interaction if applicable
+            if (potentialInteractions.length > 0 && Math.random() < 0.6) { // 60% chance of an interaction after training
+                const interaction = potentialInteractions[Math.floor(Math.random() * potentialInteractions.length)];
+                showInteractionModal("Training Feedback", interaction.message, [
+                    { text: "Encourage them", type: "positive", effect: (p) => { p.morale = Math.min(100, p.morale + 10); natchCider = Math.min(natchCider + 1, 1000); } },
+                    { text: "Be firm", type: "negative", effect: (p) => { p.morale = Math.max(0, p.morale - 5); } },
+                    { text: "Use humour", type: "neutral", effect: (p) => { p.morale = p.morale; } }
+                ], () => displayCombinedSelectionScreen(), interaction.player);
+            } else {
+                displayCombinedSelectionScreen();
+            }
+        }
+
+        // Simulate Spond attendance and generate reasons
+        function simulateSpondAttendance() {
+            players.forEach(player => {
+                if (player.isInjured) {
+                    player.isAttending = false;
+                    return;
+                }
+                let attendanceChance = 80;
+                let reason = '';
+                switch (player.personality) {
+                    case 'mischievous':
+                        attendanceChance -= 20;
+                        reason = `${player.name} is probably off causing trouble somewhere.`;
+                        break;
+                    case 'injuryProne':
+                        attendanceChance -= 5;
+                        reason = `${player.name} is 'feeling a niggle'.`;
+                        break;
+                    case 'cricketLover':
+                        attendanceChance -= 30;
+                        reason = `${player.name} is off playing cricket again!`;
+                        break;
+                    case 'unreliable':
+                        attendanceChance -= 25;
+                        if (player.parentId) {
+                            const parent = parents.find(p => p.id === player.parentId);
+                            if (parent && parent.name === 'Raul') {
+                                reason = `${player.name}'s parent, Raul, needed him at 'Curry Nights'.`;
+                            }
+                        } else {
+                            reason = `${player.name} is just unavailable.`;
+                        }
+                        break;
+                    case 'moaner':
+                        attendanceChance -= 10;
+                        reason = `${player.name} just isn't feeling it today.`;
+                        break;
+                    case 'lowConfidence':
+                        attendanceChance -= 5;
+                        reason = `${player.name} seems a bit hesitant to come to training.`;
+                        break;
+                }
+                attendanceChance += player.attendanceBias;
+
+                player.isAttending = Math.random() * 100 < attendanceChance;
+                player.absenceReason = player.isAttending ? '' : reason; // Store reason
+            });
+        }
+
+        // Display current game screen
+        function renderScreen(contentHtml) {
+            document.getElementById('game-screen').innerHTML = contentHtml;
+        }
+
+        function displayWelcomeScreen() {
+            if (!isAuthReady) {
+                setTimeout(displayWelcomeScreen, 100);
+                return;
+            }
+
+            let welcomeHtml = `
+                <div class="p-6">
+                    <p class="text-xl mb-6">Welcome to the world of Dave Booze, manager of Hanham Abbotonians Youth U14 Eagles!</p>
+                    <p class="mb-4">Enter your manager name to start your journey and see your performance on the leaderboard:</p>
+                    <input type="text" id="manager-name-input" placeholder="Your Manager Name" class="mb-6 max-w-sm mx-auto">
+                    <button id="start-game-btn" class="btn text-xl px-8 py-3 w-full max-w-sm mx-auto flex items-center justify-center">
+                        Start Season <i class="fas fa-play ml-2"></i>
+                    </button>
+                    <div id="leaderboard-display" class="mt-8 card text-left">
+                        <!-- Leaderboard will be displayed here -->
+                    </div>
+                </div>
+            `;
+            renderScreen(welcomeHtml);
+
+            document.getElementById('manager-name-input').value = userName;
+            document.getElementById('start-game-btn').addEventListener('click', () => {
+                const inputName = document.getElementById('manager-name-input').value.trim();
+                if (inputName.length < 3) {
+                    showMessageBox("Please enter a manager name at least 3 characters long.");
+                    return;
+                }
+                userName = inputName;
+                generateFixtures();
+                startWeek();
+            });
+        }
+
+
+        function startWeek() {
+            if (currentWeek >= totalWeeks) {
+                endSeason();
+                return;
+            }
+
+            currentWeek++;
+            // Update injuries (players recover each week)
+            players.forEach(player => {
+                if (player.isInjured && player.injuryDuration > 0) {
+                    player.injuryDuration--;
+                    if (player.injuryDuration === 0) {
+                        player.isInjured = false;
+                        showMessageBox(`${player.name} has recovered from injury!`);
+                    }
+                }
+            });
+
+            simulateSpondAttendance();
+
+            const hanhamFixtureForThisWeek = fixtures.find(f =>
+                f.week === currentWeek && (f.home === "Hanham Abbotonians" || f.away === "Hanham Abbotonians")
+            );
+
+            if (!hanhamFixtureForThisWeek) {
+                showMessageBox(`Hanham Abbotonians have a bye week! Simulating other league results.`, () => {
+                     simulateOtherLeagueResults(currentWeek, "Hanham Abbotonians");
+                    sortLeagueTable();
+                    startWeek();
+                });
+                return;
+            }
+
+            const pitch = (currentWeek >= 1 && currentWeek <= (totalWeeks / 2)) ? "Lees Hill (Grass)" : "Kings Oak School (4G)";
+            const availablePlayers = players.filter(p => p.isAttending).length;
+
+            let trainingHtml = `
+                <h2 class="text-3xl font-bold mb-4">Week ${currentWeek}: Training & Spond Check</h2>
+                <p class="text-lg mb-2">Pitch: ${pitch}</p>
+                <p class="text-lg mb-4">Available for training via Spond: <span class="font-bold text-yellow-400">${availablePlayers} players</span></p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-left">
+                    <div class="card p-4">
+                        <h3 class="text-xl font-bold mb-2">Training Attendees:</h3>
+                        <ul class="list-disc list-inside scrollable-list">
+                            ${players.filter(p => p.isAttending).map(p => `
+                                <li class="${p.isInjured ? 'text-red-400 line-through' : ''}">
+                                    ${p.name} (${p.position}) <br>
+                                    <span class="text-xs text-gray-400">R:${p.readiness}, Form:${Math.round(p.form)}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                    <div class="card p-4">
+                        <h3 class="text-xl font-bold mb-2">Unavailable Players:</h3>
+                        <ul class="list-disc list-inside scrollable-list">
+                            ${players.filter(p => !p.isAttending).map(p => `
+                                <li>
+                                    ${p.name} (${p.position}) <br>
+                                    <span class="text-xs text-gray-400">
+                                        ${p.isInjured ? `Injured: ${p.injuryDuration} week(s)` : p.absenceReason || 'Unavailable via Spond'}
+                                    </span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 class="text-2xl font-bold mb-4">Choose Training Session:</h3>
+                <div class="flex flex-col md:flex-row gap-4 justify-center mb-6">
+                    <button onclick="conductTraining('intense')" class="btn flex-1">Intense <br><span class="text-sm">(High Fitness, Risk of Injury)</span></button>
+                    <button onclick="conductTraining('balanced')" class="btn flex-1">Balanced <br><span class="text-sm">(Good all-round)</span></button>
+                    <button onclick="conductTraining('fun')" class="btn flex-1">Fun <br><span class="text-sm">(High Morale, Low Fitness)</span></button>
+                </div>
+
+                <div class="flex justify-center mt-8">
+                    <button onclick="showLeagueTable()" class="btn mr-4"><i class="fas fa-table mr-2"></i>View League Table</button>
+                    <button onclick="displayCombinedSelectionScreen()" class="btn"><i class="fas fa-users mr-2"></i>Select Squad for Match</button>
+                </div>
+            `;
+            renderScreen(trainingHtml);
+        }
+
+        function addNewPlayer() {
+            // Functionality to add new players is removed to prevent the list from growing too large for the single screen.
+            showMessageBox("Adding new players is temporarily disabled to focus on core features.");
+            return;
+        }
+
+        // --- Combined Squad and Lineup Selection Screen ---
+        function displayCombinedSelectionScreen() {
+            const availablePlayersForSelection = players.filter(p => !p.isInjured && p.isAttending);
+
+            if (availablePlayersForSelection.length === 0) {
+                showMessageBox("No players available for the match this week! Season will continue next week if any fixtures are left.", () => {
+                    if (currentWeek < totalWeeks) {
+                        startWeek();
+                    } else {
+                        endSeason();
+                    }
+                });
+                return;
+            }
+
+            if (!isMatchPaused) {
+                selectedLineup = [];
+                selectedSquad = [];
+                designatedGoalkeeperId = null;
+            }
+
+            let combinedSelectionHtml = `
+                <h2 class="text-3xl font-bold mb-4">Week ${currentWeek}: Squad & Lineup Selection</h2>
+                <p class="text-lg mb-4">Select your starting 11 players and up to 4 substitutes (max 15 total squad members).</p>
+                <p class="text-sm text-yellow-300 mb-6">Fitness (F), Morale (M), Readiness (R), Form (F)</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-left player-role-selection">
+                    <div class="card p-4">
+                        <h3 class="text-xl font-bold mb-2">Available Players:</h3>
+                        <div class="scrollable-list" id="all-available-players-list">
+                            ${availablePlayersForSelection.map(p => {
+                                const isStarter = selectedLineup.some(lp => lp.id === p.id);
+                                const isSub = selectedSquad.some(sp => sp.id === p.id) && !isStarter;
+                                return `
+                                <div class="flex items-center justify-between p-1 rounded-md hover:bg-gray-700 cursor-pointer player-item" data-player-id="${p.id}">
+                                    <span>
+                                        ${p.name} (${p.position}) <br>
+                                        <span class="text-xs text-gray-400">F:${p.fitness}, M:${p.morale}, R:${p.readiness}, Form:${Math.round(p.form)}</span>
+                                    </span>
+                                    <div>
+                                        <label class="inline-flex items-center cursor-pointer">
+                                            <input type="radio" name="player-role-${p.id}" value="starter" class="form-radio h-4 w-4 text-green-500 starter-radio" data-player-id="${p.id}" ${isStarter ? 'checked' : ''}>
+                                            <span class="ml-1 text-sm">Start</span>
+                                        </label>
+                                        <label class="inline-flex items-center cursor-pointer ml-3">
+                                            <input type="radio" name="player-role-${p.id}" value="sub" class="form-radio h-4 w-4 text-blue-500 sub-radio" data-player-id="${p.id}" ${isSub ? 'checked' : ''}>
+                                            <span class="ml-1 text-sm">Sub</span>
+                                        </label>
+                                        <label class="inline-flex items-center cursor-pointer ml-3">
+                                            <input type="radio" name="player-role-${p.id}" value="none" class="form-radio h-4 w-4 text-gray-500 none-radio" data-player-id="${p.id}" ${!isStarter && !isSub ? 'checked' : ''}>
+                                            <span class="ml-1 text-sm">None</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            `;
+                            }).join('')}
+                        </div>
+                    </div>
+                    <div class="card p-4">
+                        <h3 class="text-xl font-bold mb-2">Starting XI (<span id="lineup-count">0</span>/11):</h3>
+                        <ul id="selected-lineup-display" class="list-disc list-inside scrollable-list mb-4 max-h-[200px]">
+                            <!-- Selected starters will appear here -->
+                        </ul>
+
+                        <h3 class="text-xl font-bold mb-2 mt-4">Substitutes (<span id="subs-count">0</span>/4):</h3>
+                        <ul id="selected-subs-display" class="list-disc list-inside scrollable-list mb-4 max-h-[100px]">
+                            <!-- Selected subs will appear here -->
+                        </ul>
+
+                        <h3 class="text-xl font-bold mb-2 mt-4">Designate Goalkeeper:</h3>
+                        <select id="goalkeeper-select" class="w-full">
+                            <option value="">-- Select Goalkeeper --</option>
+                            <!-- Goalkeeper options will be populated by JS -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-center mt-6">
+                    <button id="confirm-squad-lineup-btn" class="btn text-xl px-8 py-3 w-full max-w-sm flex items-center justify-center" disabled>
+                        Confirm Selection & Play Match <i class="fas fa-futbol ml-2"></i>
+                    </button>
+                </div>
+            `;
+            renderScreen(combinedSelectionHtml);
+
+            document.getElementById('all-available-players-list').addEventListener('change', (event) => {
+                if (event.target.type === 'radio' && event.target.name.startsWith('player-role-')) {
+                    const playerId = event.target.dataset.playerId;
+                    const player = players.find(p => p.id === playerId);
+                    const role = event.target.value;
+
+                    // Remove player from current roles first
+                    selectedLineup = selectedLineup.filter(p => p.id !== playerId);
+                    selectedSquad = selectedSquad.filter(p => p.id !== playerId); // Always remove from full squad before re-adding
+
+                    if (role === 'starter') {
+                        if (selectedLineup.length < 11) {
+                            selectedLineup.push(player);
+                            selectedSquad.push(player); // Add to full squad as well
+                        } else {
+                            showMessageBox("You can only select up to 11 players for the starting lineup.");
+                            // Revert radio button state
+                            event.target.checked = false;
+                            const prevRole = player.prevRole || 'none';
+                            document.querySelector(`input[name="player-role-${playerId}"][value="${prevRole}"]`).checked = true;
+                            if (prevRole === 'starter') selectedLineup.push(player);
+                            if (prevRole !== 'none') selectedSquad.push(player);
+                        }
+                    } else if (role === 'sub') {
+                        const currentSubsCount = selectedSquad.filter(p => !selectedLineup.includes(p)).length;
+                        if (currentSubsCount < 4) {
+                            selectedSquad.push(player); // Add to full squad
+                        } else {
+                            showMessageBox("You can only select up to 4 substitutes.");
+                            // Revert radio button state
+                            event.target.checked = false;
+                            const prevRole = player.prevRole || 'none';
+                            document.querySelector(`input[name="player-role-${playerId}"][value="${prevRole}"]`).checked = true;
+                            if (prevRole === 'starter') selectedLineup.push(player);
+                            if (prevRole !== 'none') selectedSquad.push(player);
+                        }
+                    }
+                    // Store the current role as previous role for potential re-checking
+                    if (player) player.prevRole = role;
+
+                    updateCombinedSelectionCounts();
+                    renderCombinedSelectionLists();
+                    populateGoalkeeperSelect();
+                }
+            });
+
+            document.getElementById('goalkeeper-select').addEventListener('change', (event) => {
+                designatedGoalkeeperId = event.target.value;
+                updateCombinedSelectionCounts();
+                renderCombinedSelectionLists();
+            });
+
+            // Initial render
+            updateCombinedSelectionCounts();
+            renderCombinedSelectionLists();
+            populateGoalkeeperSelect();
+
+            if (!isMatchPaused) {
+                setTimeout(initiateParentMatchFeedback, 50);
+            }
+        }
+
+        function updateCombinedSelectionCounts() {
+            const lineupCountElement = document.getElementById('lineup-count');
+            const subsCountElement = document.getElementById('subs-count');
+            const confirmBtn = document.getElementById('confirm-squad-lineup-btn');
+
+            if (lineupCountElement) lineupCountElement.textContent = selectedLineup.length;
+            if (subsCountElement) subsCountElement.textContent = selectedSquad.length - selectedLineup.length;
+
+            if (confirmBtn) {
+                const totalSquadSize = selectedSquad.length;
+                const isValidLineupCount = selectedLineup.length === 11;
+                const isValidSubCount = (selectedSquad.length - selectedLineup.length) <= 4;
+                const isGoalkeeperDesignated = designatedGoalkeeperId !== null && designatedGoalkeeperId !== "";
+
+                confirmBtn.disabled = !(isValidLineupCount && isValidSubCount && isGoalkeeperDesignated);
+                confirmBtn.onclick = startMatchSimulation;
+            }
+        }
+
+        function renderCombinedSelectionLists() {
+            const selectedLineupDisplay = document.getElementById('selected-lineup-display');
+            const selectedSubsDisplay = document.getElementById('selected-subs-display');
+
+            if (selectedLineupDisplay) {
+                selectedLineupDisplay.innerHTML = selectedLineup.map(p => `
+                    <li>${p.name} (${p.position}) - R:${p.readiness} ${p.id === designatedGoalkeeperId ? '<span class="text-blue-400 font-bold">(GK)</span>' : ''}</li>
+                `).join('');
+            }
+            if (selectedSubsDisplay) {
+                const subs = selectedSquad.filter(p => !selectedLineup.includes(p));
+                selectedSubsDisplay.innerHTML = subs.map(p => `
+                    <li>${p.name} (${p.position}) - R:${p.readiness}</li>
+                `).join('');
+            }
+        }
+
+        function populateGoalkeeperSelect() {
+            const gkSelect = document.getElementById('goalkeeper-select');
+            if (!gkSelect) return;
+
+            const currentGK = gkSelect.value;
+            gkSelect.innerHTML = '<option value="">-- Select Goalkeeper --</option>';
+
+            selectedLineup.forEach(player => {
+                const option = document.createElement('option');
+                option.value = player.id;
+                option.textContent = player.name;
+                gkSelect.appendChild(option);
+            });
+
+            if (selectedLineup.some(p => p.id === currentGK)) {
+                gkSelect.value = currentGK;
+                designatedGoalkeeperId = currentGK;
+            } else {
+                designatedGoalkeeperId = null;
+            }
+            updateCombinedSelectionCounts();
+        }
+
+        // --- Interaction Modals ---
+        let interactionCallback;
+        let currentInteractionPerson;
+
+        function showInteractionModal(title, message, options, callback, person = null) {
+            isMatchPaused = true;
+            const modal = document.getElementById('interaction-modal');
+            document.getElementById('interaction-modal-title').textContent = title;
+            document.getElementById('interaction-message').innerHTML = message;
+            const optionsDiv = document.getElementById('interaction-options');
+            optionsDiv.innerHTML = '';
+            interactionCallback = callback;
+            currentInteractionPerson = person;
+
+            options.forEach(opt => {
+                const button = document.createElement('button');
+                button.className = 'btn flex-1';
+                button.textContent = opt.text;
+                button.onclick = () => {
+                    if (currentInteractionPerson) {
+                        opt.effect(currentInteractionPerson);
+                    } else {
+                         if (opt.type === "positive") natchCider = Math.min(natchCider + 1, 1000);
+                         if (opt.type === "negative") natchCider = Math.max(0, natchCider - 1);
+                    }
+                    hideInteractionModal();
+                    interactionCallback();
+                };
+                optionsDiv.appendChild(button);
+            });
+            modal.style.display = 'block';
+        }
+
+        function hideInteractionModal() {
+            document.getElementById('interaction-modal').style.display = 'none';
+            isMatchPaused = false;
+        }
+
+        function initiatePlayerTrainingFeedback() {
+            const trainingParticipants = players.filter(p => p.isAttending && !p.isInjured);
+            if (trainingParticipants.length === 0 || Math.random() < 0.5) {
+                displayCombinedSelectionScreen();
+                return;
+            }
+
+            const player = trainingParticipants[Math.floor(Math.random() * trainingParticipants.length)];
+            let message = '';
+            let options = [];
+
+            switch (player.personality) {
+                case 'moaner':
+                    message = `${player.name} grumbles, "That session was a bit too much, gaffer. My legs are gone!"`;
+                    options = [
+                        { text: "Sympathize: 'Take it easy next time, son.'", type: "positive", effect: (p) => { p.morale = Math.min(100, p.morale + 10); } },
+                        { text: "Be Firm: 'No pain, no gain, lad!'", type: "negative", effect: (p) => { p.morale = Math.max(0, p.morale - 10); } },
+                        { text: "Ignore", type: "neutral", effect: (p) => { p.morale = p.morale; } }
+                    ];
+                    break;
+                case 'lowConfidence':
+                    message = `${player.name} looks a bit down. "I'm not sure I'm good enough, Dave..." he mumbles.`;
+                    options = [
+                        { text: "Encourage: 'You've got this, Billy! You're a great player!'", type: "positive", effect: (p) => { p.morale = Math.min(100, p.morale + 15); natchCider = Math.min(natchCider + 1, 1000); } },
+                        { text: "Challenge: 'Pull yourself together, lad.'", type: "negative", effect: (p) => { p.morale = Math.max(0, p.morale - 15); } },
+                        { text: "Offer individual coaching", type: "positive", effect: (p) => { p.morale = Math.min(100, p.morale + 10); p.fitness = Math.min(100, p.fitness + 5); } }
+                    ];
+                    break;
+                case 'mischievous':
+                    message = `${player.name} winks. "Bit too serious today, eh, gaffer? Needs more duck, duck, goose!"`;
+                    options = [
+                        { text: "Laugh along: 'Maybe next time, Ashton!'", type: "positive", effect: (p) => { p.morale = Math.min(100, p.morale + 10); } },
+                        { text: "Be serious: 'Focus on the training, lad.'", type: "negative", effect: (p) => { p.morale = Math.max(0, p.morale - 5); } },
+                        { text: "Threaten sprints", type: "negative", effect: (p) => { p.morale = Math.max(0, p.fitness - 5); p.morale = Math.max(0, p.morale - 10); } }
+                    ];
+                    break;
+                case 'fittest':
+                    message = `${player.name} is still buzzing. "Great session, Dave! Ready for more!"`;
+                    options = [
+                        { text: "Praise: 'That's the spirit, Harry!'", type: "positive", effect: (p) => { p.morale = Math.min(100, p.morale + 5); natchCider = Math.min(natchCider + 1, 1000); } },
+                        { text: "Challenge: 'Let's see it on match day then.'", type: "neutral", effect: (p) => { /* no change */ } },
+                        { text: "Tell him to calm down", type: "negative", effect: (p) => { p.morale = Math.max(0, p.morale - 5); } }
+                    ];
+                    break;
+                default:
+                    message = `A few players seem energized after training. "Good session, Dave!" you hear.`;
+                    options = [
+                        { text: "Thank them: 'Glad you enjoyed it!'", type: "positive", effect: () => { natchCider = Math.min(natchCider + 1, 1000); } },
+                        { text: "Motivate: 'Now let's see it on Saturday!'", type: "positive", effect: () => { natchCider = Math.min(natchCider + 1, 1000); } },
+                        { text: "Say nothing", type: "neutral", effect: () => { /* no change */ } }
+                    ];
+                    player = null;
+                    break;
+            }
+            showInteractionModal("Player Feedback", message, options, displayCombinedSelectionScreen, player);
+        }
+
+        // Gemini API integration for parent feedback
+        async function initiateParentMatchFeedback() {
+            const parentsToInteract = [];
+
+            parents.forEach(parent => {
+                const child = players.find(p => p.parentId === parent.id);
+                if (child) {
+                    const childStarts = selectedLineup.some(p => p.id === child.id);
+                    const childIsSub = selectedSquad.some(p => p.id === child.id) && !childStarts;
+                    const childDidntPlay = !childStarts && !childIsSub;
+
+                    if (childDidntPlay && Math.random() < 0.6) {
+                        parentsToInteract.push({ parent: parent, type: 'upset_exclusion' });
+                    } else if (childIsSub && Math.random() < 0.3) {
+                        parentsToInteract.push({ parent: parent, type: 'sub_expectation' });
+                    }
+                }
+            });
+
+            if (parentsToInteract.length > 0 && Math.random() < 0.7) {
+                const interaction = parentsToInteract[Math.floor(Math.random() * parentsToInteract.length)];
+                const parent = interaction.parent;
+                const child = players.find(p => p.parentId === parent.id);
+                const isUpset = interaction.type === 'upset_exclusion';
+                const options = [
+                    { text: "Explain my decision", type: "neutral", effect: (p) => {
+                        const child = players.find(player => player.parentId === p.id);
+                        if (p.personality === 'exManager') {
+                            p.happiness = Math.max(0, p.happiness - 10);
+                        } else if (p.personality === 'posh') {
+                             p.happiness = Math.max(0, p.happiness - 5);
+                        } else {
+                            p.happiness = Math.max(0, p.happiness - 5);
+                        }
+                    }},
+                    { text: "Apologize and promise game time", type: "positive", effect: (p) => {
+                        const child = players.find(player => player.parentId === p.id);
+                        if (p.personality === 'unhelpful' || p.personality === 'businessOwner') {
+                            p.happiness = Math.min(100, p.happiness + 5);
+                        } else {
+                            p.happiness = Math.min(100, p.happiness + 10);
+                            natchCider = Math.min(natchCider + 1, 1000);
+                        }
+                    }},
+                    { text: "Be dismissive: 'My decisions, my team.'", type: "negative", effect: (p) => {
+                         const child = players.find(player => player.parentId === p.id);
+                         if (p.personality === 'clubMan') {
+                             p.happiness = Math.min(100, p.happiness + 5);
+                             natchCider = Math.min(natchCider + 1, 1000);
+                         } else if (p.personality === 'assistantManager') {
+                             p.happiness = Math.max(0, p.happiness - 20);
+                         } else {
+                             p.happiness = Math.max(0, p.happiness - 15);
+                             natchCider = Math.max(0, natchCider - 1);
+                         }
+                    }}
+                ];
+
+                const parentContext = isUpset ? "upset because their child was not selected for the match day squad" : "happy their child is on the bench but hopes they get minutes";
+                const prompt = `You are a text-based LLM. Your persona is a parent of an under-15s footballer talking to their manager, Dave Booze. Your name is ${parent.name}, and your child is ${child.name}. Your persona is defined by the following trait: '${parent.personality}' and you are ${parentContext}. Generate a short, informal, and realistic dialogue that captures the sentiment of this persona.`;
+
+                showInteractionModal("Parent Feedback", `<div class="flex items-center justify-center"><i class="fas fa-spinner fa-spin mr-2"></i> Generating feedback...</div>`, [], null, null);
+
+                try {
+                    const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                    const payload = { contents: chatHistory };
+                    const apiKey = "AIzaSyC1weU_rWNZTsifkhGSTF7oEKS5uNmXVuA"; // Your key is placed here
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    const generatedText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Dave, I'm not happy about this.";
+
+                    showInteractionModal("Parent Feedback", generatedText, options, () => {
+                        startMatchSimulation();
+                    }, parent);
+
+                } catch (error) {
+                    console.error("Gemini API call failed:", error);
+                    const fallbackMessage = isUpset
+                        ? `${parent.name} (${child.name}'s parent) looks a bit miffed. "Bit surprised ${child.name} isn't in the squad, Dave."`
+                        : `${parent.name} (${child.name}'s parent) approaches, "Glad ${child.name} is in the squad, but hoping for some minutes today!"`;
+                    showInteractionModal("Parent Feedback", fallbackMessage, options, () => {
+                        startMatchSimulation();
+                    }, parent);
+                }
+
+            } else {
+                startMatchSimulation();
+            }
+        }
+
+
+        // --- Live Match Simulation ---
+        let currentHanhamScore = 0;
+        let currentOpponentScore = 0;
+        let commentaryLog = [];
+        let hanhamPlayersOnField = []; // Keep track of who is actually playing for red card impact
+        let redCardedPlayers = []; // Track red carded players
+
+        function startMatchSimulation() {
+            teamStrengthModifier = 0;
+            redCardedPlayers = [];
+
+            const hanhamTeam = teams.find(t => t.name === "Hanham Abbotonians");
+            const currentHanhamFixture = fixtures.find(f =>
+                f.week === currentWeek && (f.home === hanhamTeam.name || f.away === hanhamTeam.name)
+            );
+            const opponentName = currentHanhamFixture.home === hanhamTeam.name ? currentHanhamFixture.away : currentHanhamFixture.home;
+            const opponentTeam = teams.find(t => t.name === opponentName);
+
+            currentHanhamScore = 0;
+            currentOpponentScore = 0;
+            matchMinutes = 0;
+            isMatchPaused = false;
+            hanhamGoals = [];
+            hanhamPlayersOnField = [...selectedLineup];
+
+            let matchScreenHtml = `
+                <h2 class="text-3xl font-bold mb-4">Week ${currentWeek}: Match Day!</h2>
+                <div class="card p-4 mb-6">
+                    <p class="text-2xl font-bold mb-2">${hanhamTeam.name} vs ${opponentTeam.name}</p>
+                    <p class="text-4xl font-extrabold text-yellow-400 mb-4">
+                        <span id="hanham-score">${currentHanhamScore}</span> - <span id="opponent-score">${currentOpponentScore}</span>
+                    </p>
+                    <p class="text-xl">Minute: <span id="match-minute">0</span></p>
+                </div>
+
+                <div class="commentary-log mb-6" id="commentary-log">
+                    <p>Match kicks off!</p>
+                </div>
+
+                <div class="flex justify-center mt-6">
+                    <button onclick="showSubstitutionModal()" class="btn" id="make-sub-btn">
+                        <i class="fas fa-exchange-alt mr-2"></i> Make Sub
+                    </button>
+                </div>
+            `;
+            renderScreen(matchScreenHtml);
+
+            matchInterval = setInterval(updateMatchProgress, 500);
+        }
+
+        function updateMatchProgress() {
+            if (isMatchPaused) {
+                return;
+            }
+
+            matchMinutes += Math.floor(Math.random() * 5) + 1;
+
+            const hanhamTeam = teams.find(t => t.name === "Hanham Abbotonians");
+            const currentHanhamFixture = fixtures.find(f =>
+                f.week === currentWeek && (f.home === hanhamTeam.name || f.away === hanhamTeam.name)
+            );
+            const opponentName = currentHanhamFixture.home === hanhamTeam.name ? currentHanhamFixture.away : currentHanhamFixture.home;
+            const opponentTeam = teams.find(t => t.name === opponentName);
+
+            let hanhamReadinessSum = hanhamPlayersOnField.reduce((sum, p) => sum + p.readiness, 0);
+            let hanhamAvgReadiness = hanhamPlayersOnField.length > 0 ? hanhamReadinessSum / hanhamPlayersOnField.length : 50;
+            let hanhamEffectiveStrength = hanhamTeam.strength * (hanhamAvgReadiness / 100) + teamStrengthModifier;
+
+            const opponentStrength = opponentTeam.strength;
+
+            const logCommentary = (comment) => {
+                const commentaryDiv = document.getElementById('commentary-log');
+                if (commentaryDiv) {
+                    const p = document.createElement('p');
+                    p.innerHTML = `<strong>Min ${matchMinutes}:</strong> ${comment}`;
+                    commentaryDiv.appendChild(p);
+                    commentaryDiv.scrollTop = commentaryDiv.scrollHeight;
+                }
+            };
+
+            // Card system
+            if (Math.random() < 0.03 && matchMinutes < 80) {
+                const playerForCard = hanhamPlayersOnField[Math.floor(Math.random() * hanhamPlayersOnField.length)];
+                if (playerForCard) {
+                    const cardType = Math.random();
+                    const cardReasons = [
+                        "a mistimed tackle", "shirt pulling", "a professional foul", "swearing at the referee",
+                        "arguing with the opponent", "fighting with a parent from the other team"
+                    ];
+                    const randomReason = cardReasons[Math.floor(Math.random() * cardReasons.length)];
+
+                    if (cardType < 0.8) {
+                        playerForCard.yellowCards++;
+                        logCommentary(`<span class="text-yellow-400 font-bold">YELLOW CARD! ${playerForCard.name} booked for ${randomReason}.</span>`);
+                        if (playerForCard.yellowCards >= 2) {
+                            playerForCard.redCards++;
+                            hanhamPlayersOnField = hanhamPlayersOnField.filter(p => p.id !== playerForCard.id);
+                            redCardedPlayers.push(playerForCard);
+                            teamStrengthModifier -= 10;
+                            logCommentary(`<span class="text-red-400 font-bold">RED CARD! ${playerForCard.name} receives a second yellow and is sent off for ${randomReason}! Hanham Abbotonians are down to ${hanhamPlayersOnField.length} men!</span>`);
+                            showMessageBox(`${playerForCard.name} has been sent off! Your team's strength is reduced.`);
+                        }
+                    } else {
+                        playerForCard.redCards++;
+                        hanhamPlayersOnField = hanhamPlayersOnField.filter(p => p.id !== playerForCard.id);
+                        redCardedPlayers.push(playerForCard);
+                        teamStrengthModifier -= 15;
+                        logCommentary(`<span class="text-red-400 font-bold">RED CARD! ${playerForCard.name} is sent off for ${randomReason}! Hanham Abbotonians are down to ${hanhamPlayersOnField.length} men!</span>`);
+                        showMessageBox(`${playerForCard.name} has been sent off! Your team's strength is reduced.`);
+                    }
+                }
+            }
+
+
+            if (Math.random() < 0.15) {
+                const eventType = Math.random();
+                if (eventType < 0.45) {
+                    if (Math.random() * hanhamEffectiveStrength > Math.random() * opponentStrength * 0.8) {
+                        logCommentary("Hanham Abbotonians pushing forward!");
+                        if (Math.random() * hanhamEffectiveStrength > Math.random() * opponentStrength * 1.2) {
+                            const scorer = hanhamPlayersOnField[Math.floor(Math.random() * hanhamPlayersOnField.length)];
+                            if (scorer) {
+                                currentHanhamScore++;
+                                hanhamGoals.push(scorer.name);
+                                document.getElementById('hanham-score').textContent = currentHanhamScore;
+                                logCommentary(`<span class="text-yellow-400 font-bold">GOAL! ${scorer.name} scores for Hanham Abbotonians!</span>`);
+                                goalSound.play();
+                            } else {
+                                logCommentary("Hanham had a chance, but no one could finish!");
+                            }
+                        } else {
+                            logCommentary("Great save by the opponent's keeper!");
+                        }
+                    } else {
+                        logCommentary("Hanham attack breaks down.");
+                    }
+                } else if (eventType < 0.90) {
+                    if (Math.random() * opponentStrength > Math.random() * hanhamEffectiveStrength * 0.8) {
+                        logCommentary(`${opponentName} on the attack!`);
+                        if (Math.random() * opponentStrength > Math.random() * hanhamEffectiveStrength * 1.2) {
+                            currentOpponentScore++;
+                            document.getElementById('opponent-score').textContent = currentOpponentScore;
+                            logCommentary(`<span class="text-red-400 font-bold">Goal! ${opponentName} scores!</span>`);
+                        } else {
+                            logCommentary("Designated keeper made a crucial save!");
+                        }
+                    } else {
+                        logCommentary(`${opponentName}'s attack fizzles out.`);
+                    }
+                } else {
+                    const otherEvent = Math.random();
+                    if (otherEvent < 0.3) logCommentary("Midfield battle intensifying.");
+                    else if (otherEvent < 0.6) logCommentary("Tactical foul in the center circle.");
+                    else logCommentary("A few strong challenges going in.");
+                }
+            }
+
+            document.getElementById('match-minute').textContent = matchMinutes;
+
+            if (matchMinutes >= 90) {
+                clearInterval(matchInterval);
+                whistleSound.play();
+                logCommentary("Full time! The whistle blows!");
+                setTimeout(() => {
+                    endLiveMatch(currentHanhamScore, currentOpponentScore);
+                }, 2000);
+            }
+        }
+
+        function endLiveMatch(finalHanhamScore, finalOpponentScore) {
+            const hanhamTeam = teams.find(t => t.name === "Hanham Abbotonians");
+            const currentHanhamFixture = fixtures.find(f =>
+                f.week === currentWeek && (f.home === hanhamTeam.name || f.away === hanhamTeam.name)
+            );
+            const opponentName = currentHanhamFixture.home === hanhamTeam.name ? currentHanhamFixture.away : currentHanhamFixture.home;
+            const opponentTeam = teams.find(t => t.name === opponentName);
+
+            let hanhamResult = '';
+            let natchEarned = 0;
+            if (finalHanhamScore > finalOpponentScore) {
+                hanhamResult = 'Win';
+                natchEarned = 10;
+            } else if (finalHanhamScore < finalOpponentScore) {
+                hanhamResult = 'Loss';
+                natchEarned = 2;
+            } else {
+                hanhamResult = 'Draw';
+                natchEarned = 5;
+            }
+            natchCider += natchEarned;
+
+            selectedSquad.forEach(player => {
+                if (player.isInjured && player.injuryDuration > 0) {
+                } else if (Math.random() < 0.03 && player.id === designatedGoalkeeperId) {
+                    player.isInjured = true;
+                    player.injuryDuration = Math.floor(Math.random() * 2) + 1;
+                    showMessageBox(`${player.name} (your designated goalkeeper) picked up a knock during the match! Out for ${player.injuryDuration} week(s).`);
+                } else if (Math.random() < 0.05 && selectedLineup.includes(player) && !player.isInjured) {
+                    player.isInjured = true;
+                    player.injuryDuration = Math.floor(Math.random() * 2) + 1;
+                    showMessageBox(`${player.name} picked up a knock during the match! Out for ${player.injuryDuration} week(s).`);
+                }
+                player.yellowCards = 0;
+            });
+
+
+            selectedLineup.forEach(player => {
+                let baseRating = 5;
+                baseRating += (player.readiness - 70) / 10;
+                baseRating += (player.form - 70) / 15;
+
+                if (hanhamResult === 'Win') baseRating += 1;
+                else if (hanhamResult === 'Loss') baseRating -= 1;
+                else if (hanhamResult === 'Draw') baseRating += 0.5;
+
+                if (player.id === designatedGoalkeeperId) {
+                    baseRating += (finalOpponentScore === 0 ? 1.5 : (finalOpponentScore > 2 ? -1.5 : 0));
+                }
+
+                if (player.personality === 'fittest') baseRating += 0.5;
+                if (player.personality === 'creative' && hanhamGoals.includes(player.name)) baseRating += 1;
+                if (player.personality === 'aggressive' && hanhamResult === 'Win') baseRating += 0.5;
+                if (player.personality === 'moaner' && hanhamResult === 'Loss') baseRating -= 0.5;
+                if (player.personality === 'lowConfidence' && hanhamResult === 'Loss') baseRating -= 0.5;
+
+                if (player.yellowCards > 0) baseRating -= 0.5;
+                if (player.redCards > 0) baseRating -= 1.5;
+
+                baseRating += (Math.random() * 2 - 1);
+
+                player.matchRating = Math.max(1, Math.min(10, Math.round(baseRating)));
+                updatePlayerForm(player, player.matchRating * 10);
+            });
+
+            let manOfTheMatch = null;
+            let plonkerOfTheWeek = null;
+            let highestRating = -1;
+            let lowestRating = 11;
+
+            selectedLineup.forEach(player => {
+                if (player.matchRating > highestRating) {
+                    highestRating = player.matchRating;
+                    manOfTheMatch = player;
+                }
+                if (player.matchRating < lowestRating) {
+                    lowestRating = player.matchRating;
+                    plonkerOfTheWeek = player;
+                }
+            });
+
+            const getMotmJustification = (player) => {
+                if (!player) return "No outstanding performer this week, everyone put in a decent shift.";
+                let justification = `With a rating of ${player.matchRating}/10, `;
+                if (player.personality === 'fittest') justification += `${player.name} ran tirelessly all game, dominating the midfield.`;
+                else if (player.personality === 'creative') justification += `${player.name}'s intelligent play and creativity opened up the opponent, truly a joy to watch.`;
+                else if (player.personality === 'leader') justification += `${player.name} led by example, rallying the team from start to finish.`;
+                else if (player.personality === 'speedy' && hanhamGoals.includes(player.name)) justification += `${player.name}'s blistering pace was too much for the opposition, capping it off with a crucial goal.`;
+                else justification += `${player.name} put in a superb performance, showing great skill and determination throughout the match.`;
+                return justification;
+            };
+
+            const getPotwJustification = (player) => {
+                if (!player) return "Everyone gave their all this week!";
+                let justification = `With a rating of ${player.matchRating}/10, `;
+                if (player.personality === 'moaner') justification += `Caspar seemed to have one of his off-days, letting his frustrations get the better of him.`;
+                else if (player.personality === 'lowConfidence') justification += `Billy struggled to find his rhythm today, looking a bit short on confidence. He'll bounce back next week.`;
+                else if (player.personality === 'injuryProne') justification += `${player.name} just couldn't shake off his injury concerns, it hampered his game.`;
+                else if (player.personality === 'mischievous') justification += `Ashton looked more interested in what was happening off the pitch than on it, needs to focus.`;
+                else justification += `${player.name} had a difficult day at the office, needs to dust himself off and go again.`;
+                return justification;
+            };
+
+
+            parents.forEach(parent => {
+                const child = players.find(p => p.parentId === parent.id);
+                if (child) {
+                    const childPlayed = selectedLineup.some(p => p.id === child.id) || selectedSquad.some(p => p.id === child.id);
+
+                    if (childPlayed) {
+                        parent.happiness = Math.min(100, parent.happiness + (child.matchRating - 5) + parent.reactionBias);
+                        if (child.matchRating >= 8) natchCider++;
+                        if (parent.name === "Craig" && Math.random() < 0.2) { /* Craig distracted */ }
+                        else if (parent.name === "Alex" && child.matchRating < 5) {
+                             natchCider = Math.max(0, natchCider - 1);
+                        }
+                    } else {
+                        parent.happiness = Math.max(0, parent.happiness - (5 + parent.reactionBias));
+                        if (parent.happiness < 50) natchCider = Math.max(0, natchCider - 1);
+                    }
+                }
+            });
+
+            const hanhamLeagueStats = leagueTable.find(t => t.name === hanhamTeam.name);
+            if (hanhamLeagueStats) {
+                hanhamLeagueStats.played++;
+                hanhamLeagueStats.goalsFor += finalHanhamScore;
+                hanhamLeagueStats.goalsAgainst += finalOpponentScore;
+                if (hanhamResult === 'Win') {
+                    hanhamLeagueStats.wins++;
+                    hanhamLeagueStats.points += 3;
+                } else if (hanhamResult === 'Draw') {
+                    hanhamLeagueStats.draws++;
+                    hanhamLeagueStats.points += 1;
+                } else {
+                    hanhamLeagueStats.losses++;
+                }
+                hanhamLeagueStats.goalDifference = hanhamLeagueStats.goalsFor - hanhamLeagueStats.goalsAgainst;
+            }
+
+            const opponentLeagueStats = leagueTable.find(t => t.name === opponentTeam.name);
+            if (opponentLeagueStats) {
+                opponentLeagueStats.played++;
+                opponentLeagueStats.goalsFor += finalOpponentScore;
+                opponentLeagueStats.goalsAgainst += finalHanhamScore;
+                if (hanhamResult === 'Loss') {
+                    opponentLeagueStats.wins++;
+                    opponentLeagueStats.points += 3;
+                } else if (hanhamResult === 'Draw') {
+                    opponentLeagueStats.draws++;
+                    opponentLeagueStats.points += 1;
+                } else {
+                    opponentLeagueStats.losses++;
+                }
+                opponentLeagueStats.goalDifference = opponentLeagueStats.goalsFor - opponentLeagueStats.goalsAgainst;
+            }
+
+            currentHanhamFixture.homeScore = currentHanhamFixture.home === hanhamTeam.name ? finalHanhamScore : finalOpponentScore;
+            currentHanhamFixture.awayScore = currentHanhamFixture.away === hanhamTeam.name ? finalHanhamScore : finalOpponentScore;
+            currentHanhamFixture.result = hanhamResult;
+
+            simulateOtherLeagueResults(currentWeek, hanhamTeam.name);
+
+            displayMatchReport(hanhamTeam, opponentTeam, finalHanhamScore, finalOpponentScore, hanhamResult, manOfTheMatch, plonkerOfTheWeek, getMotmJustification(manOfTheMatch), getPotwJustification(plonkerOfTheWeek));
+        }
+
+        function showSubstitutionModal() {
+            isMatchPaused = true;
+            const subModal = document.getElementById('substitution-modal');
+            subModal.style.display = 'block';
+
+            const playerOffSelect = document.getElementById('player-off-select');
+            const playerOnSelect = document.getElementById('player-on-select');
+
+            playerOffSelect.innerHTML = '<option value="">-- Select Player Off --</option>';
+            playerOnSelect.innerHTML = '<option value="">-- Select Player On --</option>';
+
+            hanhamPlayersOnField.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = p.name;
+                playerOffSelect.appendChild(option);
+            });
+
+            const availableSubs = selectedSquad.filter(p =>
+                !hanhamPlayersOnField.includes(p) &&
+                !p.isInjured &&
+                !redCardedPlayers.includes(p)
+            );
+            availableSubs.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = `${p.name} (R:${p.readiness})`;
+                playerOnSelect.appendChild(option);
+            });
+        }
+
+        function performSubstitution() {
+            const playerOffId = document.getElementById('player-off-select').value;
+            const playerOnId = document.getElementById('player-on-select').value;
+
+            if (!playerOffId || !playerOnId) {
+                showMessageBox("Please select both a player to come off and a player to come on.");
+                return;
+            }
+
+            const playerOff = players.find(p => p.id === playerOffId);
+            const playerOn = players.find(p => p.id === playerOnId);
+
+            if (!playerOff || !playerOn) {
+                showMessageBox("Error: Player not found.");
+                return;
+            }
+
+            if (playerOn.isInjured) {
+                showMessageBox(`${playerOn.name} is currently injured and cannot come on.`);
+                return;
+            }
+            if (redCardedPlayers.includes(playerOn)) {
+                showMessageBox(`${playerOn.name} has already been sent off and cannot come on.`);
+                return;
+            }
+
+
+            const indexOff = hanhamPlayersOnField.indexOf(playerOff);
+            if (indexOff > -1) {
+                hanhamPlayersOnField.splice(indexOff, 1, playerOn);
+
+                const commentaryDiv = document.getElementById('commentary-log');
+                if (commentaryDiv) {
+                    const p = document.createElement('p');
+                    p.innerHTML = `<strong>Min ${matchMinutes}:</strong> Substitution! ${playerOff.name} off, ${playerOn.name} on.`;
+                    commentaryDiv.appendChild(p);
+                    commentaryDiv.scrollTop = commentaryDiv.scrollHeight;
+                }
+
+                if (designatedGoalkeeperId === playerOff.id) {
+                    designatedGoalkeeperId = null;
+                    const newGKCandidate = hanhamPlayersOnField[0];
+                    if (newGKCandidate) {
+                        designatedGoalkeeperId = newGKCandidate.id;
+                        showMessageBox(`Dave notes ${playerOff.name} is off. ${newGKCandidate.name} is now in goal.`);
+                    } else {
+                         showMessageBox(`Dave notes ${playerOff.name} is off. No players left for goalkeeper!`);
+                    }
+                }
+                document.getElementById('substitution-modal').style.display = 'none';
+                isMatchPaused = false;
+            } else {
+                showMessageBox("Error: Player selected to come off is not in the starting lineup.");
+            }
+        }
+
+        function cancelSubstitution() {
+            document.getElementById('substitution-modal').style.display = 'none';
+            isMatchPaused = false;
+        }
+
+
+        function simulateOtherLeagueResults(week, hanhamName) {
+            const fixturesThisWeek = fixtures.filter(f => f.week === week);
+
+            fixturesThisWeek.forEach(f => {
+                if (f.home !== hanhamName && f.away !== hanhamName && f.result === null) {
+                    const teamA = teams.find(t => t.name === f.home);
+                    const teamB = teams.find(t => t.name === f.away);
+
+                    if (teamA && teamB) {
+                        const scoreA = Math.floor(Math.random() * (teamA.strength / 10)) + Math.floor(Math.random() * 2);
+                        const scoreB = Math.floor(Math.random() * (teamB.strength / 10)) + Math.floor(Math.random() * 2);
+
+                        updateTeamLeagueStats(teamA.name, scoreA, scoreB);
+                        updateTeamLeagueStats(teamB.name, scoreB, scoreA);
+
+                        f.homeScore = scoreA;
+                        f.awayScore = scoreB;
+                        if (scoreA > scoreB) f.result = 'H';
+                        else if (scoreA < scoreB) f.result = 'A';
+                        else f.result = 'D';
+                    }
+                }
+            });
+            sortLeagueTable();
+        }
+
+        function updateTeamLeagueStats(teamName, goalsFor, goalsAgainst) {
+            const teamStats = leagueTable.find(t => t.name === teamName);
+            if (teamStats) {
+                teamStats.played++;
+                teamStats.goalsFor += goalsFor;
+                teamStats.goalsAgainst += goalsAgainst;
+                if (goalsFor > goalsAgainst) {
+                    teamStats.wins++;
+                    teamStats.points += 3;
+                } else if (goalsFor === goalsAgainst) {
+                    teamStats.draws++;
+                    teamStats.points += 1;
+                } else {
+                    teamStats.losses++;
+                }
+                teamStats.goalDifference = teamStats.goalsFor - teamStats.goalsAgainst;
+            }
+        }
+
+        function sortLeagueTable() {
+            leagueTable.sort((a, b) => {
+                if (b.points !== a.points) return b.points - a.points;
+                if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
+                return b.goalsFor - a.goalsFor;
+            });
+        }
+
+        function displayMatchReport(hanhamTeam, opponentTeam, hanhamScore, opponentScore, hanhamResult, motm, potw, motmJustification, potwJustification) {
+            let matchReportHtml = `
+                <h2 class="text-3xl font-bold mb-4">Week ${currentWeek}: Match Report</h2>
+                <div class="card p-4 mb-6">
+                    <p class="text-2xl font-bold mb-2">${hanhamTeam.name} vs ${opponentTeam.name}</p>
+                    <p class="text-4xl font-extrabold text-yellow-400 mb-4">${hanhamScore} - ${opponentScore}</p>
+                    <p class="text-xl">Result: <span class="font-bold">${hanhamResult}</span></p>
+                    <p class="text-lg mt-2">Hanham Scorers: ${hanhamGoals.length > 0 ? hanhamGoals.join(', ') : 'None'}</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="card p-4">
+                        <h3 class="text-xl font-bold mb-2">Dave Booze's Commentary:</h3>
+                        <p class="mb-2">Man of the Match: <span class="font-bold text-yellow-400">${motm ? motm.name : 'No one stood out!'}</span> (Rating: ${motm ? motm.matchRating : 'N/A'})</p>
+                        <p class="text-sm italic mb-2">${motmJustification}</p>
+                        <p>Plonker of the Week: <span class="font-bold text-red-400">${potw ? potw.name : 'Everyone was brilliant!'}</span> (Rating: ${potw ? potw.matchRating : 'N/A'})</p>
+                        <p class="text-sm italic mb-2">${potwJustification}</p>
+                        <p class="mt-4 text-xl">Dave's Natch Cider: <span class="font-bold">${natchCider} <i class="fas fa-beer text-yellow-400"></i></span></p>
+                    </div>
+                    <div class="card p-4">
+                        <h3 class="text-xl font-bold mb-2">Player Match Ratings:</h3>
+                        <ul class="list-disc list-inside scrollable-list">
+                            ${selectedLineup.map(p => `
+                                <li>${p.name}: ${p.matchRating}/10</li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 class="text-2xl font-bold mb-4">Other League Results:</h3>
+                <div class="card p-4 mb-6">
+                    <ul class="list-disc list-inside scrollable-list">
+                        ${fixtures.filter(f => f.week === currentWeek && f.result).map(f => `
+                            <li>${f.home} ${f.homeScore} - ${f.awayScore} ${f.away}</li>
+                        `).join('')}
+                    </ul>
+                </div>
+
+
+                <div class="flex justify-center mt-6">
+                    <button onclick="showLeagueTable()" class="btn mr-4"><i class="fas fa-table mr-2"></i>View Updated League Table</button>
+                    <button onclick="moveToNextWeek()" class="btn">Continue Season <i class="fas fa-forward ml-2"></i></button>
+                </div>
+            `;
+            renderScreen(matchReportHtml);
+        }
+
+        function moveToNextWeek() {
+            if (currentWeek < totalWeeks) {
+                startWeek();
+            } else {
+                endSeason();
+            }
+        }
+
+        function showLeagueTable() {
+            sortLeagueTable();
+
+            let tableHtml = `
+                <h2 class="text-3xl font-bold mb-4">League Table - Week ${currentWeek}</h2>
+                <div class="card p-4 mb-6 overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead>
+                            <tr>
+                                <th class="px-2 py-1">Pos</th>
+                                <th class="px-2 py-1">Team</th>
+                                <th class="px-2 py-1">P</th>
+                                <th class="px-2 py-1">W</th>
+                                <th class="px-2 py-1">D</th>
+                                <th class="px-2 py-1">L</th>
+                                <th class="px-2 py-1">GF</th>
+                                <th class="px-2 py-1">GA</th>
+                                <th class="px-2 py-1">GD</th>
+                                <th class="px-2 py-1">Pts</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${leagueTable.map((team, index) => `
+                                <tr class="${team.name === 'Hanham Abbotonians' ? 'bg-yellow-800 bg-opacity-30' : ''}">
+                                    <td class="px-2 py-1">${index + 1}</td>
+                                    <td class="px-2 py-1">${team.name}</td>
+                                    <td class="px-2 py-1">${team.played}</td>
+                                    <td class="px-2 py-1">${team.wins}</td>
+                                    <td class="px-2 py-1">${team.draws}</td>
+                                    <td class="px-2 py-1">${team.losses}</td>
+                                    <td class="px-2 py-1">${team.goalsFor}</td>
+                                    <td class="px-2 py-1">${team.goalsAgainst}</td>
+                                    <td class="px-2 py-1">${team.goalDifference}</td>
+                                    <td class="px-2 py-1 font-bold">${team.points}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="flex justify-center mt-6">
+                    <button onclick="continueFromLeagueTable()" class="btn">Back to Game <i class="fas fa-arrow-left ml-2"></i></button>
+                </div>
+            `;
+            renderScreen(tableHtml);
+        }
+
+        function continueFromLeagueTable() {
+            if (seasonComplete) {
+                endSeason();
+            } else if (currentWeek === 0) {
+                displayWelcomeScreen();
+            } else {
+                startWeek();
+            }
+        }
+
+
+        function endSeason() {
+            seasonComplete = true;
+            gtag('event', 'season_end', {
+                'user_name': userName,
+                'final_natch_cider': natchCider,
+                'league_position': leagueTable.findIndex(t => t.name === "Hanham Abbotonians") + 1
+            });
+            saveScoreToLeaderboard(natchCider);
+
+            let hanhamFinalPosition = leagueTable.findIndex(t => t.name === "Hanham Abbotonians") + 1;
+            let hanhamStats = leagueTable.find(t => t.name === "Hanham Abbotonians");
+
+            let endSeasonHtml = `
+                <h2 class="text-4xl font-extrabold mb-6">Season Over!</h2>
+                <div class="card p-6 mb-6">
+                    <p class="text-2xl mb-2">Dave Booze's Final Standing:</p>
+                    <p class="text-5xl font-extrabold text-yellow-400 mb-4">${hanhamFinalPosition}${getOrdinalSuffix(hanhamFinalPosition)} Place!</p>
+                    <p class="text-xl">Total Natch Cider Collected: <span class="font-bold">${natchCider} <i class="fas fa-beer text-yellow-400"></i></span></p>
+                    <p class="text-lg mt-4">Record: ${hanhamStats.wins} Wins, ${hanhamStats.draws} Draws, ${hanhamStats.losses} Losses</p>
+                    <p class="text-lg">Goal Difference: ${hanhamStats.goalDifference}</p>
+                </div>
+
+                <div id="leaderboard-display-final" class="mt-8 card text-left">
+                    <!-- Leaderboard will be displayed here -->
+                </div>
+
+                <button onclick="restartGame()" class="btn mt-8 text-xl px-8 py-3 w-full max-w-sm flex items-center justify-center">
+                    Play Again! <i class="fas fa-redo ml-2"></i>
+                </button>
+            `;
+            renderScreen(endSeasonHtml);
+        }
+
+        function getOrdinalSuffix(i) {
+            const j = i % 10, k = i % 100;
+            if (j === 1 && k !== 11) return "st";
+            if (j === 2 && k !== 12) return "nd";
+            if (j === 3 && k !== 13) return "rd";
+            return "th";
+        }
+
+        function restartGame() {
+            currentWeek = 0;
+            natchCider = 0;
+            seasonComplete = false;
+            selectedSquad = [];
+            selectedLineup = [];
+            designatedGoalkeeperId = null;
+            hanhamGoals = [];
+            teamStrengthModifier = 0;
+
+            players.forEach(p => {
+                p.fitness = 80;
+                p.morale = 75;
+                p.readiness = calculateReadiness(p);
+                p.trainingRating = 5;
+                p.form = 75;
+                p.isInjured = false;
+                p.injuryDuration = 0;
+                p.matchRating = 0;
+                p.yellowCards = 0;
+                p.redCards = 0;
+                p.isAttending = true;
+                p.prevRole = 'none';
+            });
+
+            parents.forEach(p => p.happiness = 75);
+
+            leagueTable = teams.map(team => ({
+                ...team,
+                played: 0,
+                wins: 0,
+                draws: 0,
+                losses: 0,
+                goalsFor: 0,
+                goalsAgainst: 0,
+                goalDifference: 0,
+                points: 0
+            }));
+            generateFixtures();
+            displayWelcomeScreen();
+        }
+
+        // Expose functions to global scope for HTML inline calls
+        document.addEventListener('DOMContentLoaded', (event) => {
+            window.conductTraining = conductTraining;
+            window.displayCombinedSelectionScreen = displayCombinedSelectionScreen;
+            window.startMatchSimulation = startMatchSimulation;
+            window.showLeagueTable = showLeagueTable;
+            window.moveToNextWeek = moveToNextWeek;
+            window.continueFromLeagueTable = continueFromLeagueTable;
+            window.restartGame = restartGame;
+            window.hideMessageBox = hideMessageBox;
+            window.showSubstitutionModal = showSubstitutionModal;
+            window.performSubstitution = performSubstitution;
+            window.cancelSubstitution = cancelSubstitution;
+            window.showInteractionModal = showInteractionModal;
+        });
+
+        window.onload = firebaseInit;
+
+    </script>
+</body>
+</html>
